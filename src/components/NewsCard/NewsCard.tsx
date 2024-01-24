@@ -2,7 +2,7 @@ import { FC } from 'react';
 import Button from '@mui/material/Button';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
-import { CommonArticle } from 'types/globalTypes';
+import { CommonArticle } from 'types';
 import NewsImage from './NewsImage';
 import { StyledCard, StyledCardActions } from './NewsCard.styled';
 

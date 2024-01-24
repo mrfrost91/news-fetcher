@@ -1,43 +1,77 @@
 import { ControlledSelect } from 'components/common/fields/Select';
 import { ControlledTextField } from 'components/common/fields/TextField';
-import { ChangeEventHandler, FC, KeyboardEvent } from 'react';
+import { ChangeEventHandler, FC, KeyboardEvent, useCallback, useMemo } from 'react';
 import { debounce, SelectChangeEvent } from '@mui/material';
-import { API_OPTIONS, SEARCH_PARAM_KEYS } from 'api';
+import { API_OPTIONS, INITIAL_PAGE, SEARCH_PARAM_KEYS } from 'api';
 import { ControlledDatePicker } from 'components/common/fields/DatePicker';
 import dayjs from 'dayjs';
-import { useWatch } from 'react-hook-form';
+import { SubmitHandler, useFormContext, useWatch } from 'react-hook-form';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ApiSlug } from 'api/types';
+import { SortByOptions } from 'types';
+import FiltersFabs from 'components/NewsFeed/FiltersFabs';
+import { createPortal } from 'react-dom';
+import { ROUTE_PARAMS } from 'router';
 import { NewsFeedFiltersStyledForm } from './NewsFeed.styled';
 import { FormFields } from './NewsFeedFormProvider';
 
 const DEBOUNCE_TIME = 3000;
+export const FILTERS_FORM_ID = 'news-feed-filters-form';
+const REACT_ROOT_DOM_NODE = document.getElementById('root')!;
 
 type NewsFeedFiltersProps = {
   disableFilters: boolean;
-  handleFromDateChange: (value: string | null) => void;
-  handleToDateChange: (value: string | null) => void;
-  handleSourceChange: <T>(event: SelectChangeEvent<T>) => void;
-  handleSearchChange: ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement>;
-  sortByOptions: Readonly<{ label: string; value: string }[]>;
-  handleSortByChange: <T>(event: SelectChangeEvent<T>) => void;
+  sortByOptions: SortByOptions;
 };
 
-const NewsFeedFilters: FC<NewsFeedFiltersProps> = ({
-  disableFilters,
-  sortByOptions,
-  handleFromDateChange,
-  handleToDateChange,
-  handleSourceChange,
-  handleSearchChange,
-  handleSortByChange,
-}) => {
+const NewsFeedFilters: FC<NewsFeedFiltersProps> = ({ disableFilters, sortByOptions }) => {
+  const navigate = useNavigate();
+  const { search } = useLocation();
   const [fromDate, toDate] = useWatch<FormFields>({
     name: [SEARCH_PARAM_KEYS.from, SEARCH_PARAM_KEYS.to],
   });
+  const { handleSubmit, reset } = useFormContext<FormFields>();
   const fromDateMaxDate = toDate ? dayjs(toDate) : undefined;
   const shouldHideFromDateTodayBtn = fromDateMaxDate
     ? fromDateMaxDate.diff(dayjs(), 'day') < 0
     : false;
-  const debouncedHandleSearchChange = debounce(handleSearchChange, DEBOUNCE_TIME);
+
+  const handleSourceChange = (event: SelectChangeEvent<unknown>) => {
+    const apiSlug = event.target.value as ApiSlug;
+    navigate({ pathname: `../${apiSlug}` }, { state: { from: { search } } });
+  };
+
+  const handleSearchChange: ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement> =
+    useCallback(
+      (event) => {
+        const searchParams = new URLSearchParams(search);
+        const newSearchValue = event.target.value.trim();
+
+        if (newSearchValue) {
+          searchParams.set(SEARCH_PARAM_KEYS.query, newSearchValue);
+        } else {
+          searchParams.delete(SEARCH_PARAM_KEYS.query);
+        }
+        searchParams.set(SEARCH_PARAM_KEYS.page, INITIAL_PAGE);
+        navigate({ search: searchParams.toString() });
+      },
+      [navigate, search],
+    );
+  const debouncedHandleSearchChange = useMemo(
+    () => debounce(handleSearchChange, DEBOUNCE_TIME),
+    [handleSearchChange],
+  );
+
+  const handleSearchBlur: ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement> = (event) => {
+    const searchParams = new URLSearchParams(search);
+    const newSearchValue = event.target.value.trim();
+    const oldSearchValue = searchParams.get(SEARCH_PARAM_KEYS.query) ?? '';
+
+    if (newSearchValue === oldSearchValue) return;
+
+    handleSearchChange(event);
+    debouncedHandleSearchChange.clear();
+  };
 
   const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
@@ -46,8 +80,28 @@ const NewsFeedFilters: FC<NewsFeedFiltersProps> = ({
     }
   };
 
+  const onSubmit: SubmitHandler<FormFields> = (data) => {
+    const currentSearchParams = new URLSearchParams(search);
+    Object.entries(data).forEach(([key, value]) => {
+      if (key && value) {
+        currentSearchParams.set(key, value);
+      } else if (!value) {
+        currentSearchParams.delete(key);
+      }
+    });
+    currentSearchParams.delete(ROUTE_PARAMS.source.slug);
+
+    navigate({ search: currentSearchParams.toString() });
+  };
+
   return (
-    <NewsFeedFiltersStyledForm noValidate>
+    <NewsFeedFiltersStyledForm
+      id={FILTERS_FORM_ID}
+      noValidate
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      onSubmit={handleSubmit(onSubmit)}
+      onReset={() => reset()}
+    >
       <ControlledSelect
         name="source"
         label="Source"
@@ -60,7 +114,7 @@ const NewsFeedFilters: FC<NewsFeedFiltersProps> = ({
         label="Search"
         disabled={disableFilters}
         inputProps={{ maxLength: 96 }}
-        onBlur={handleSearchChange}
+        onBlur={handleSearchBlur}
         onChange={debouncedHandleSearchChange}
         onKeyDown={handleSearchKeyDown}
       />
@@ -69,7 +123,6 @@ const NewsFeedFilters: FC<NewsFeedFiltersProps> = ({
         label="From Date"
         disabled={disableFilters}
         maxDate={fromDateMaxDate}
-        onAccept={handleFromDateChange}
         disableFuture
         hideTodayBtn={shouldHideFromDateTodayBtn}
       />
@@ -78,7 +131,6 @@ const NewsFeedFilters: FC<NewsFeedFiltersProps> = ({
         label="To Date"
         disabled={disableFilters}
         minDate={dayjs(fromDate)}
-        onAccept={handleToDateChange}
         disableFuture
       />
       <ControlledSelect
@@ -86,8 +138,8 @@ const NewsFeedFilters: FC<NewsFeedFiltersProps> = ({
         label="Sort By"
         disabled={disableFilters}
         options={sortByOptions}
-        onChange={handleSortByChange}
       />
+      {createPortal(<FiltersFabs />, REACT_ROOT_DOM_NODE)}
     </NewsFeedFiltersStyledForm>
   );
 };

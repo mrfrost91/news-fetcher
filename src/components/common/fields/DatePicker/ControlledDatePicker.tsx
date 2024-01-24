@@ -32,7 +32,6 @@ const ControlledDatePicker: FC<ControlledDatePickerProps> = ({
     <Controller
       name={name}
       control={control}
-      disabled={disabled}
       rules={rules}
       render={({ field: { ref, onChange: fieldOnChange, value, ...field } }) => (
         <MuiDatePicker
@@ -53,6 +52,7 @@ const ControlledDatePicker: FC<ControlledDatePickerProps> = ({
           {...rest}
           // eslint-disable-next-line react/jsx-props-no-spreading
           {...field}
+          disabled={disabled}
           inputRef={ref}
           value={value && dayjs(value)}
           onAccept={(newValue) => {

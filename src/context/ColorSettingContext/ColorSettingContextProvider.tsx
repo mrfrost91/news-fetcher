@@ -1,5 +1,5 @@
 import { createContext, Dispatch, FC, useMemo, useState } from 'react';
-import { FCWithChildren } from 'types/globalTypes';
+import { FCWithChildren } from 'types';
 import { useMediaQuery } from '@mui/material';
 import {
   COLOR_SETTING_KEY,

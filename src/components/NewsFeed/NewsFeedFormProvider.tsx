@@ -1,10 +1,10 @@
 import { useForm, FormProvider } from 'react-hook-form';
-import { FCWithChildren } from 'types/globalTypes';
+import { FCWithChildren } from 'types';
 import { FC, useMemo } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { ApiSlug, ApiSlugParam } from 'api/types';
-import { SEARCH_PARAM_KEYS } from 'api/baseNewsApi.constants';
-import { ROUTE_PARAMS } from 'router/routes';
+import { SEARCH_PARAM_KEYS } from 'api';
+import { ROUTE_PARAMS } from 'router';
 
 export type FormFields = {
   source?: ApiSlug;

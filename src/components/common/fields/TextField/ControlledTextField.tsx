@@ -27,7 +27,6 @@ const ControlledTextField: FC<TextFieldProps> = ({
     <Controller
       name={name}
       control={control}
-      disabled={disabled}
       rules={rules}
       render={({ field: { ref, onBlur: fieldOnBlur, onChange: fieldOnChange, ...field } }) => (
         <TextField
@@ -37,6 +36,7 @@ const ControlledTextField: FC<TextFieldProps> = ({
           {...rest}
           // eslint-disable-next-line react/jsx-props-no-spreading
           {...field}
+          disabled={disabled}
           inputRef={ref}
           onBlur={(event) => {
             if (onBlur) onBlur(event);

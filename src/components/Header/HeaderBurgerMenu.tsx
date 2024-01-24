@@ -20,7 +20,7 @@ type HeaderBurgerMenuProps = {
 
 const COLOR_SETTING_OPTIONS = [
   {
-    label: 'Defined by the system',
+    label: 'System',
     value: COLOR_SETTINGS.definedByTheSystem,
   },
   { label: 'Light', value: COLOR_SETTINGS.light },

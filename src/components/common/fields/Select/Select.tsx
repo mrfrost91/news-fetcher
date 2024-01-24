@@ -3,14 +3,13 @@ import MenuItem from '@mui/material/MenuItem';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import { FC } from 'react';
+import { NONE_LABEL } from 'constants';
 
 type Option = { label: string; value: string } | number;
 export interface SelectProps extends MuiSelectProps {
   name: string;
   options: Readonly<Option[]>;
 }
-
-export const NONE_LABEL = 'None';
 
 const mapOptions = (item: Option) => {
   if (typeof item === 'number') {

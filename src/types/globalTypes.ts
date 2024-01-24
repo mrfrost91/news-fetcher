@@ -8,4 +8,6 @@ export type CommonArticle = {
   title: string;
 };
 
+export type SortByOptions = Readonly<{ label: string; value: string }[]>;
+
 export type FCWithChildren = { children?: ReactNode };
