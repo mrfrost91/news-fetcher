@@ -1,7 +1,7 @@
 import { Navigate, useParams } from 'react-router-dom';
-import { ROUTES } from 'router/routes';
+import { ROUTES } from 'router';
 import { FC } from 'react';
-import { FCWithChildren } from 'types/globalTypes';
+import { FCWithChildren } from 'types';
 
 type ParamsValidatedRouteProps = {
   paramName: string;

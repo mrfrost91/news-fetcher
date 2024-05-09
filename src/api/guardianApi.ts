@@ -1,4 +1,4 @@
-import { CommonArticle } from 'types/globalTypes';
+import { CommonArticle } from 'types';
 import {
   GuardianApiArticle,
   GuardianApiErrorResponse,
@@ -9,33 +9,20 @@ import {
   BASE_URL,
   IMMUTABLE_SEARCH_PARAMS,
   SEARCH_PARAMS_MAP,
-  SORT_BY_OPTIONS,
 } from './guardianApi.constants';
 import { BaseNewsApi } from './baseNewsApi';
 
 class GuardianApi extends BaseNewsApi {
-  private readonly apiSlug = GUARDIAN_API_SLUG;
-
-  private readonly sortByOptions = SORT_BY_OPTIONS;
-
   private fetchedData: undefined | GuardianApiSuccessResponse;
 
-  constructor(searchParams?: string) {
+  constructor() {
     const immutableSearchParams = new URLSearchParams(IMMUTABLE_SEARCH_PARAMS);
 
-    super(BASE_URL, immutableSearchParams, searchParams);
+    super(GUARDIAN_API_SLUG, BASE_URL, immutableSearchParams);
   }
 
-  get currentApiSlug() {
-    return this.apiSlug;
-  }
-
-  get currentSortByOptions() {
-    return this.sortByOptions;
-  }
-
-  get mappedSearchParams(): URLSearchParams {
-    const transformedSearchParams = new URLSearchParams(this.stringifiedSearchParams);
+  get transformedSearchParams(): string {
+    const transformedSearchParams = new URLSearchParams(this.currentSearchParamsString);
 
     SEARCH_PARAMS_MAP.forEach(([oldKey, newKey]) => {
       const searchParamsValue = transformedSearchParams.get(oldKey);
@@ -46,7 +33,7 @@ class GuardianApi extends BaseNewsApi {
       transformedSearchParams.delete(oldKey);
     });
 
-    return transformedSearchParams;
+    return transformedSearchParams.toString();
   }
 
   get articles(): GuardianApiArticle[] {
@@ -67,14 +54,27 @@ class GuardianApi extends BaseNewsApi {
     };
   }
 
+  get currentPage(): number {
+    if (!this.fetchedData) return 1;
+
+    return this.fetchedData.response.currentPage;
+  }
+
+  get currentPageSize(): number {
+    if (!this.fetchedData) return 1;
+
+    return this.fetchedData.response.pageSize;
+  }
+
   get totalResults(): number {
     if (!this.fetchedData) return 0;
 
     return this.fetchedData.response.total;
   }
 
-  async fetchNews(): Promise<GuardianApiSuccessResponse> {
-    const response = await fetch(this.stringifiedUrl);
+  async fetchNews(search: string): Promise<GuardianApiSuccessResponse> {
+    this.currentSearchParamsString = search;
+    const response = await fetch(this.constructFullUrl());
 
     if (!response.ok) {
       const errorData = (await response.json()) as GuardianApiErrorResponse;

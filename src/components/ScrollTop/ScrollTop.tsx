@@ -26,8 +26,8 @@ const ScrollTop = () => {
 
   return (
     <Fade in={trigger} timeout={250}>
-      <StyledScrollBtnBox onClick={scrollTop} role="presentation">
-        <Fab aria-label="scroll back to top" color="primary">
+      <StyledScrollBtnBox role="presentation">
+        <Fab aria-label="scroll back to top" color="primary" onClick={scrollTop}>
           <KeyboardArrowUpIcon />
         </Fab>
       </StyledScrollBtnBox>

@@ -1,4 +1,4 @@
-import { CommonArticle } from 'types/globalTypes';
+import { CommonArticle } from 'types';
 import { SEARCH_PARAM_KEYS } from './baseNewsApi.constants';
 import {
   NewYorkTimesApiArticle,
@@ -14,58 +14,37 @@ import {
   NY_TIMES_API_SLUG,
   NY_TIMES_ROWS_RER_PAGE_OPTIONS,
   SEARCH_PARAMS_MAP,
-  SORT_BY_OPTIONS,
 } from './newYorkTimesApi.constants';
 
 class NewYorkTimesApi extends BaseNewsApi {
-  private readonly apiSlug = NY_TIMES_API_SLUG;
-
-  private readonly sortByOptions = SORT_BY_OPTIONS;
+  private readonly newYorkTimesInitialSearchParams = INITIAL_SEARCH_PARAMS;
 
   private fetchedData: undefined | NewYorkTimesApiSuccessResponse;
 
-  private readonly pageSize: number = NY_TIMES_ROWS_RER_PAGE_OPTIONS[0];
+  private readonly newYorkTimesRowsPerPageOptions = NY_TIMES_ROWS_RER_PAGE_OPTIONS;
 
-  constructor(searchParams?: string) {
+  constructor() {
     const immutableSearchParams = new URLSearchParams(IMMUTABLE_SEARCH_PARAMS);
-    const modifiedSearchParams = searchParams
-      ? new URLSearchParams(searchParams)
-      : new URLSearchParams(INITIAL_SEARCH_PARAMS);
 
-    if (modifiedSearchParams.has(SEARCH_PARAM_KEYS.pageSize)) {
-      modifiedSearchParams.delete(SEARCH_PARAM_KEYS.pageSize);
-    }
-
-    super(BASE_URL, immutableSearchParams, modifiedSearchParams.toString());
+    super(NY_TIMES_API_SLUG, BASE_URL, immutableSearchParams);
   }
 
-  get currentApiSlug() {
-    return this.apiSlug;
-  }
-
-  get currentSortByOptions() {
-    return this.sortByOptions;
-  }
-
-  get currentPageSize(): number {
-    return this.pageSize;
-  }
-
-  get mappedSearchParams(): URLSearchParams {
-    const transformedSearchParams = new URLSearchParams(this.stringifiedSearchParams);
-    const { currentPage } = this;
-    transformedSearchParams.set(SEARCH_PARAM_KEYS.page, `${currentPage - 1}`);
+  get transformedSearchParams(): string {
+    const transformedSearchParams = new URLSearchParams(this.currentSearchParamsString);
+    const currentPage =
+      transformedSearchParams.get(SEARCH_PARAM_KEYS.page) ?? INITIAL_SEARCH_PARAMS.page;
+    transformedSearchParams.set(SEARCH_PARAM_KEYS.page, `${Number(currentPage) - 1}`);
 
     SEARCH_PARAMS_MAP.forEach(([oldKey, newKey]) => {
-      const searchParamsValue = transformedSearchParams.get(oldKey);
+      const searchParamValue = transformedSearchParams.get(oldKey);
 
-      if (newKey && searchParamsValue) {
-        transformedSearchParams.set(newKey, searchParamsValue);
+      if (newKey && searchParamValue) {
+        transformedSearchParams.set(newKey, searchParamValue);
       }
       transformedSearchParams.delete(oldKey);
     });
 
-    return transformedSearchParams;
+    return transformedSearchParams.toString();
   }
 
   get articles(): NewYorkTimesApiArticle[] {
@@ -87,8 +66,22 @@ class NewYorkTimesApi extends BaseNewsApi {
     };
   }
 
+  get currentPage(): number {
+    if (!this.fetchedData) return 1;
+
+    return this.fetchedData.response.meta.offset / this.newYorkTimesRowsPerPageOptions[0] + 1;
+  }
+
+  get currentPageSize(): number {
+    return this.newYorkTimesRowsPerPageOptions[0];
+  }
+
+  get initialSearchParamsString(): string {
+    return new URLSearchParams(this.newYorkTimesInitialSearchParams).toString();
+  }
+
   get rowsPerPageOptions(): number[] {
-    return [this.pageSize];
+    return [...this.newYorkTimesRowsPerPageOptions];
   }
 
   get totalResults(): number {
@@ -97,8 +90,9 @@ class NewYorkTimesApi extends BaseNewsApi {
     return this.fetchedData.response.meta.hits;
   }
 
-  async fetchNews(): Promise<NewYorkTimesApiSuccessResponse> {
-    const response = await fetch(this.stringifiedUrl);
+  async fetchNews(search: string): Promise<NewYorkTimesApiSuccessResponse> {
+    this.currentSearchParamsString = search;
+    const response = await fetch(this.constructFullUrl());
 
     if (!response.ok) {
       const errorData = (await response.json()) as NewYorkTimesApiErrorResponse;

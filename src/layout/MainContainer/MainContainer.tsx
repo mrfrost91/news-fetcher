@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { FCWithChildren } from 'types/globalTypes';
+import { FCWithChildren } from 'types';
 import { StyledMainContainer } from './MainContainer.styled';
 
 const MainContainer: FC<FCWithChildren> = ({ children }) => (
