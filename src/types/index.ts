@@ -1,1 +1,6 @@
-export type { CommonArticle, SortByOptions, FCWithChildren } from './globalTypes';
+export type {
+  CommonArticle,
+  RowsPerPageOptions,
+  SortByOptions,
+  FCWithChildren,
+} from './globalTypes';

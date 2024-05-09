@@ -15,7 +15,7 @@ export const SORT_BY_SLUGS = {
   relevance: 'relevance',
 } as const;
 
-export const SORT_BY_OPTIONS = [
+export const BASE_SORT_BY_OPTIONS = [
   { label: NONE_LABEL, value: '' },
   { label: 'Newest', value: SORT_BY_SLUGS.newest },
   { label: 'Oldest', value: SORT_BY_SLUGS.oldest },
@@ -25,7 +25,7 @@ export const SORT_BY_OPTIONS = [
 export const BASE_ROWS_RER_PAGE_OPTIONS = [10, 25, 50, 100] as const;
 
 export const INITIAL_PAGE = '1';
-export const INITIAL_SEARCH_PARAMS = {
+export const BASE_INITIAL_SEARCH_PARAMS = {
   [SEARCH_PARAM_KEYS.page]: INITIAL_PAGE,
   [SEARCH_PARAM_KEYS.pageSize]: `${BASE_ROWS_RER_PAGE_OPTIONS[0]}`,
 } as const;

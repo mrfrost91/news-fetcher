@@ -12,17 +12,15 @@ import {
 } from './guardianApi.constants';
 import { BaseNewsApi } from './baseNewsApi';
 
-class GuardianApi extends BaseNewsApi {
-  private fetchedData: undefined | GuardianApiSuccessResponse;
-
+class GuardianApi extends BaseNewsApi<GuardianApiSuccessResponse> {
   constructor() {
-    const immutableSearchParams = new URLSearchParams(IMMUTABLE_SEARCH_PARAMS);
+    const essentialSearchParams = new URLSearchParams(IMMUTABLE_SEARCH_PARAMS);
 
-    super(GUARDIAN_API_SLUG, BASE_URL, immutableSearchParams);
+    super(GUARDIAN_API_SLUG, BASE_URL, essentialSearchParams);
   }
 
   get transformedSearchParams(): string {
-    const transformedSearchParams = new URLSearchParams(this.currentSearchParamsString);
+    const transformedSearchParams = new URLSearchParams(this.searchParamsString);
 
     SEARCH_PARAMS_MAP.forEach(([oldKey, newKey]) => {
       const searchParamsValue = transformedSearchParams.get(oldKey);
@@ -43,14 +41,17 @@ class GuardianApi extends BaseNewsApi {
   }
 
   getCommonFormatArticle(articleIndex: number): CommonArticle {
+    const article = this.articles[articleIndex];
+    const description = article.fields.trailText
+      ? article.fields.trailText.replace(/<\w+>/g, '').replace(/<\/\w+>/g, '')
+      : '';
+
     return {
-      url: this.articles[articleIndex].webUrl,
-      urlToImage: this.articles[articleIndex].fields.thumbnail,
-      description: this.articles[articleIndex].fields.trailText
-        .replace(/<\w+>/g, '')
-        .replace(/<\/\w+>/g, ''),
-      publishedAt: this.articles[articleIndex].webPublicationDate,
-      title: this.articles[articleIndex].webTitle,
+      url: article.webUrl,
+      urlToImage: article.fields.thumbnail,
+      description,
+      publishedAt: article.webPublicationDate,
+      title: article.webTitle,
     };
   }
 
@@ -61,19 +62,19 @@ class GuardianApi extends BaseNewsApi {
   }
 
   get currentPageSize(): number {
-    if (!this.fetchedData) return 1;
+    if (!this.fetchedData) return this.rowsPerPageOptions[0];
 
     return this.fetchedData.response.pageSize;
   }
 
-  get totalResults(): number {
-    if (!this.fetchedData) return 0;
+  get totalResults(): number | null {
+    if (!this.fetchedData) return null;
 
     return this.fetchedData.response.total;
   }
 
   async fetchNews(search: string): Promise<GuardianApiSuccessResponse> {
-    this.currentSearchParamsString = search;
+    this.searchParamsString = search;
     const response = await fetch(this.constructFullUrl());
 
     if (!response.ok) {
@@ -81,9 +82,10 @@ class GuardianApi extends BaseNewsApi {
       throw new Error(errorData.response.message);
     }
 
-    this.fetchedData = (await response.json()) as GuardianApiSuccessResponse;
+    const parsedResponse = (await response.json()) as GuardianApiSuccessResponse;
+    this.fetchedData = parsedResponse;
 
-    return this.fetchedData;
+    return parsedResponse;
   }
 }
 

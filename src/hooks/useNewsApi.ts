@@ -1,25 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiFactory, SEARCH_PARAM_KEYS } from 'api';
 import { Location, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ApiSlugParam, ApiTypes } from 'api/types';
+import { ApiSlugParam, ApiInstance } from 'api/types';
 import { ROUTE_PARAMS } from 'router';
 
 type LocationState = { from: { search: string } } | null;
 
-const useNewsApis = () => {
+const useNewsApi = () => {
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [trigger, setTrigger] = useState<string>(new Date().toISOString());
+  const [trigger, setTrigger] = useState<number>(() => Date.now());
   const { [ROUTE_PARAMS.source.slug]: source } = useParams<ApiSlugParam>();
   const { search, state } = useLocation() as Location<LocationState>;
   const navigate = useNavigate();
-  const api = useRef<ApiTypes>(ApiFactory.createApi(source));
+  const api = useRef<ApiInstance>(ApiFactory.createApi(source));
 
   const handleEmptySearchParams = useCallback(
-    (apiToUse: ApiTypes, locationState: LocationState) => {
-      const mergedSearchParams = new URLSearchParams(apiToUse.initialSearchParamsString);
+    (apiToUse: ApiInstance, locationState: LocationState) => {
+      const mergedSearchParams = new URLSearchParams(apiToUse.searchParamsString);
 
-      // Prefill search params with query, from and to dates if switching from other news source
+      // Prefill search params with query, from and to dates if switching from other news sources
       if (locationState && locationState.from.search) {
         const fromStateSearchParams = new URLSearchParams(locationState.from.search);
         fromStateSearchParams.delete(SEARCH_PARAM_KEYS.page);
@@ -39,7 +39,7 @@ const useNewsApis = () => {
   const fetchNewsApi = useCallback(async () => {
     setLoading(true);
 
-    const shouldCreateNewInstance = api.current.currentApiSlug !== source;
+    const shouldCreateNewInstance = api.current.apiSlug !== source;
     const apiToUse = shouldCreateNewInstance ? ApiFactory.createApi(source) : api.current;
 
     if (!search) {
@@ -59,9 +59,9 @@ const useNewsApis = () => {
     }
   }, [source, search, handleEmptySearchParams, state]);
 
-  const retry = () => {
-    setTrigger(new Date().toISOString());
-  };
+  const retry = useCallback(() => {
+    setTrigger(Date.now());
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -82,7 +82,7 @@ const useNewsApis = () => {
     },
     apiOptions: {
       rowsPerPageOptions: api.current.rowsPerPageOptions,
-      sortByOptions: api.current.currentSortByOptions,
+      sortByOptions: api.current.sortByOptions,
     },
     error,
     loading,
@@ -90,4 +90,4 @@ const useNewsApis = () => {
   };
 };
 
-export default useNewsApis;
+export default useNewsApi;

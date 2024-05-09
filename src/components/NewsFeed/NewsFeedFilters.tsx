@@ -1,6 +1,6 @@
 import { ControlledSelect } from 'components/common/fields/Select';
 import { ControlledTextField } from 'components/common/fields/TextField';
-import { ChangeEventHandler, FC, KeyboardEvent, useCallback, useMemo } from 'react';
+import { ChangeEventHandler, FC, KeyboardEvent, useCallback, useId, useMemo } from 'react';
 import { debounce, SelectChangeEvent } from '@mui/material';
 import { API_OPTIONS, INITIAL_PAGE, SEARCH_PARAM_KEYS } from 'api';
 import { ControlledDatePicker } from 'components/common/fields/DatePicker';
@@ -11,12 +11,10 @@ import { ApiSlug } from 'api/types';
 import { SortByOptions } from 'types';
 import FiltersFabs from 'components/NewsFeed/FiltersFabs';
 import { createPortal } from 'react-dom';
-import { ROUTE_PARAMS } from 'router';
 import { NewsFeedFiltersStyledForm } from './NewsFeed.styled';
 import { FormFields } from './NewsFeedFormProvider';
 
 const DEBOUNCE_TIME = 3000;
-export const FILTERS_FORM_ID = 'news-feed-filters-form';
 const REACT_ROOT_DOM_NODE = document.getElementById('root')!;
 
 type NewsFeedFiltersProps = {
@@ -25,6 +23,7 @@ type NewsFeedFiltersProps = {
 };
 
 const NewsFeedFilters: FC<NewsFeedFiltersProps> = ({ disableFilters, sortByOptions }) => {
+  const filtersFormId = useId();
   const navigate = useNavigate();
   const { search } = useLocation();
   const [fromDate, toDate] = useWatch<FormFields>({
@@ -80,23 +79,24 @@ const NewsFeedFilters: FC<NewsFeedFiltersProps> = ({ disableFilters, sortByOptio
     }
   };
 
-  const onSubmit: SubmitHandler<FormFields> = (data) => {
+  const onSubmit: SubmitHandler<FormFields> = ({ from, to, sortBy }) => {
+    const neededData = { from, to, sortBy };
     const currentSearchParams = new URLSearchParams(search);
-    Object.entries(data).forEach(([key, value]) => {
+
+    Object.entries(neededData).forEach(([key, value]) => {
       if (key && value) {
         currentSearchParams.set(key, value);
       } else if (!value) {
         currentSearchParams.delete(key);
       }
     });
-    currentSearchParams.delete(ROUTE_PARAMS.source.slug);
 
     navigate({ search: currentSearchParams.toString() });
   };
 
   return (
     <NewsFeedFiltersStyledForm
-      id={FILTERS_FORM_ID}
+      id={filtersFormId}
       noValidate
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
       onSubmit={handleSubmit(onSubmit)}
@@ -139,7 +139,7 @@ const NewsFeedFilters: FC<NewsFeedFiltersProps> = ({ disableFilters, sortByOptio
         disabled={disableFilters}
         options={sortByOptions}
       />
-      {createPortal(<FiltersFabs />, REACT_ROOT_DOM_NODE)}
+      {createPortal(<FiltersFabs filtersFormId={filtersFormId} />, REACT_ROOT_DOM_NODE)}
     </NewsFeedFiltersStyledForm>
   );
 };

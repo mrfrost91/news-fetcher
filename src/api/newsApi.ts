@@ -1,4 +1,4 @@
-import { CommonArticle, SortByOptions } from 'types';
+import { CommonArticle } from 'types';
 import { SEARCH_PARAM_KEYS } from 'api/baseNewsApi.constants';
 import { NewsApiArticle, NewsApiErrorResponse, NewsApiSuccessResponse } from './newsApi.types';
 import { BaseNewsApi } from './baseNewsApi';
@@ -10,25 +10,22 @@ import {
   SORT_BY_OPTIONS,
 } from './newsApi.constants';
 
-class NewsApi extends BaseNewsApi {
-  private readonly newsApiInitialSearchParams = INITIAL_SEARCH_PARAMS;
+class NewsApi extends BaseNewsApi<NewsApiSuccessResponse> {
+  #currentPage = Number(INITIAL_SEARCH_PARAMS.page);
 
-  private currentPageValue = Number(this.newsApiInitialSearchParams.page);
-
-  private currentPageSizeValue = Number(this.newsApiInitialSearchParams.pageSize);
-
-  private readonly newsApiSortByOptions = SORT_BY_OPTIONS;
-
-  private fetchedData: undefined | NewsApiSuccessResponse;
+  #currentPageSize = Number(INITIAL_SEARCH_PARAMS.pageSize);
 
   constructor() {
-    const immutableSearchParams = new URLSearchParams(IMMUTABLE_SEARCH_PARAMS);
+    const essentialSearchParams = new URLSearchParams(IMMUTABLE_SEARCH_PARAMS);
+    const initialSearchParamsString = new URLSearchParams(INITIAL_SEARCH_PARAMS).toString();
 
-    super(NEWS_API_SLUG, BASE_URL, immutableSearchParams);
-  }
-
-  get currentSortByOptions(): SortByOptions {
-    return this.newsApiSortByOptions;
+    super(
+      NEWS_API_SLUG,
+      BASE_URL,
+      essentialSearchParams,
+      initialSearchParamsString,
+      SORT_BY_OPTIONS,
+    );
   }
 
   get articles(): NewsApiArticle[] {
@@ -38,51 +35,44 @@ class NewsApi extends BaseNewsApi {
   }
 
   getCommonFormatArticle(articleIndex: number): CommonArticle {
-    const description = this.articles[articleIndex].description ?? '';
-    const filteredDescription =
-      description && description.replace(/<\w+>/g, '').replace(/<\/\w+>/g, '');
+    const article = this.articles[articleIndex];
+    const description = article.description
+      ? article.description.replace(/<\w+>/g, '').replace(/<\/\w+>/g, '')
+      : '';
 
     return {
-      url: this.articles[articleIndex].url,
-      urlToImage: this.articles[articleIndex].urlToImage,
-      description: filteredDescription,
-      publishedAt: this.articles[articleIndex].publishedAt,
-      title: this.articles[articleIndex].title,
+      url: article.url,
+      urlToImage: article.urlToImage,
+      description,
+      publishedAt: article.publishedAt,
+      title: article.title,
     };
   }
 
   get currentPage(): number {
-    if (!this.fetchedData) return 1;
-
-    return this.currentPageValue;
+    return this.#currentPage;
   }
 
   set currentPage(value: number) {
-    this.currentPageValue = value;
+    this.#currentPage = value;
   }
 
   get currentPageSize(): number {
-    if (!this.fetchedData) return 1;
-
-    return this.currentPageSizeValue;
+    return this.#currentPageSize;
   }
 
   set currentPageSize(value: number) {
-    this.currentPageSizeValue = value;
+    this.#currentPageSize = value;
   }
 
-  get initialSearchParamsString(): string {
-    return new URLSearchParams(this.newsApiInitialSearchParams).toString();
-  }
-
-  get totalResults(): number {
-    if (!this.fetchedData) return 0;
+  get totalResults(): number | null {
+    if (!this.fetchedData) return null;
 
     return this.fetchedData.totalResults;
   }
 
   async fetchNews(search: string): Promise<NewsApiSuccessResponse> {
-    this.currentSearchParamsString = search;
+    this.searchParamsString = search;
     const response = await fetch(this.constructFullUrl());
 
     if (!response.ok) {
@@ -90,16 +80,17 @@ class NewsApi extends BaseNewsApi {
       throw new Error(errorData.message);
     }
 
-    this.fetchedData = (await response.json()) as NewsApiSuccessResponse;
+    const parsedResponse = (await response.json()) as NewsApiSuccessResponse;
+    this.fetchedData = parsedResponse;
     const currentSearchParams = new URLSearchParams(search);
     const currentPageFromSearchParams =
-      currentSearchParams.get(SEARCH_PARAM_KEYS.page) ?? `${this.currentPageValue}`;
+      currentSearchParams.get(SEARCH_PARAM_KEYS.page) ?? `${this.#currentPage}`;
     const currentPageSizeFromSearchParams =
-      currentSearchParams.get(SEARCH_PARAM_KEYS.pageSize) ?? `${this.currentPageSizeValue}`;
+      currentSearchParams.get(SEARCH_PARAM_KEYS.pageSize) ?? `${this.#currentPageSize}`;
     this.currentPage = Number(currentPageFromSearchParams);
     this.currentPageSize = Number(currentPageSizeFromSearchParams);
 
-    return this.fetchedData;
+    return parsedResponse;
   }
 }
 

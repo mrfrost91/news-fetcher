@@ -1,65 +1,68 @@
 import { ApiSlug } from 'api/types';
-import { SortByOptions } from 'types';
+import { RowsPerPageOptions, SortByOptions } from 'types';
+import { ApiAuth } from 'api/apiAuth';
 import {
   BASE_ROWS_RER_PAGE_OPTIONS,
-  INITIAL_SEARCH_PARAMS,
-  SORT_BY_OPTIONS,
+  BASE_INITIAL_SEARCH_PARAMS,
+  BASE_SORT_BY_OPTIONS,
 } from './baseNewsApi.constants';
 
-export class BaseNewsApi {
-  private readonly apiSlug: ApiSlug;
+type FetchedData<T> = T | undefined;
 
-  private readonly baseUrl: string;
+export class BaseNewsApi<T> extends ApiAuth {
+  #fetchedData: FetchedData<T>;
 
-  private readonly immutableSearchParams: URLSearchParams;
+  #searchParamsString: string;
 
-  private readonly baseInitialSearchParams = INITIAL_SEARCH_PARAMS;
+  readonly #sortByOptions: SortByOptions;
 
-  private readonly sortByOptions = SORT_BY_OPTIONS;
+  readonly #rowsPerPageOptions: RowsPerPageOptions;
 
-  private searchParamsString: string | undefined;
-
-  private readonly baseRowsPerPageOptions = BASE_ROWS_RER_PAGE_OPTIONS;
-
-  constructor(apiSlug: ApiSlug, baseUrl: string, immutableSearchParams: URLSearchParams) {
-    this.apiSlug = apiSlug;
-    this.baseUrl = baseUrl;
-    this.immutableSearchParams = immutableSearchParams;
+  constructor(
+    apiSlug: ApiSlug,
+    baseUrl: string,
+    essentialSearchParams: URLSearchParams,
+    initialSearchParamsString: string = new URLSearchParams(BASE_INITIAL_SEARCH_PARAMS).toString(),
+    sortByOptions: SortByOptions = BASE_SORT_BY_OPTIONS,
+    rowsPerPageOptions: RowsPerPageOptions = BASE_ROWS_RER_PAGE_OPTIONS,
+  ) {
+    super(apiSlug, baseUrl, essentialSearchParams);
+    this.#searchParamsString = initialSearchParamsString;
+    this.#sortByOptions = sortByOptions;
+    this.#rowsPerPageOptions = rowsPerPageOptions;
   }
 
-  get currentApiSlug() {
-    return this.apiSlug;
+  get fetchedData(): FetchedData<T> {
+    return this.#fetchedData;
   }
 
-  get currentSearchParamsString(): string {
-    if (!this.searchParamsString) return '';
-
-    return this.searchParamsString;
+  set fetchedData(value: FetchedData<T>) {
+    this.#fetchedData = value;
   }
 
-  set currentSearchParamsString(value: string) {
-    this.searchParamsString = value;
+  get searchParamsString(): string {
+    return this.#searchParamsString;
   }
 
-  get currentSortByOptions(): SortByOptions {
-    return this.sortByOptions;
+  set searchParamsString(value: string) {
+    this.#searchParamsString = value;
   }
 
-  get initialSearchParamsString(): string {
-    return new URLSearchParams(this.baseInitialSearchParams).toString();
+  get sortByOptions(): SortByOptions {
+    return this.#sortByOptions;
   }
 
   get rowsPerPageOptions(): number[] {
-    return [...this.baseRowsPerPageOptions];
+    return [...this.#rowsPerPageOptions];
   }
 
   get transformedSearchParams(): string {
-    return this.currentSearchParamsString;
+    return this.searchParamsString;
   }
 
   private get mergedSearchParams(): string {
     const mergedSearchParams = new URLSearchParams(this.transformedSearchParams);
-    this.immutableSearchParams.forEach((value, key) => {
+    this.essentialSearchParams.forEach((value, key) => {
       mergedSearchParams.set(key, value);
     });
 
