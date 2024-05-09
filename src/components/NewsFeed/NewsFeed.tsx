@@ -2,7 +2,7 @@ import { ChangeEventHandler, FC, MouseEvent } from 'react';
 import TablePagination from '@mui/material/TablePagination';
 import { NewsCard } from 'components/NewsCard';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useNewsApis } from 'hooks';
+import { useNewsApi } from 'hooks';
 import { OverlaidLoader } from 'components/common/loader/OverlaidLoader';
 import { SEARCH_PARAM_KEYS } from 'api';
 import Box from '@mui/material/Box';
@@ -22,7 +22,7 @@ const NewsFeed: FC = () => {
     apiData: { articles, currentPage, currentPageSize, totalResults },
     apiMethods,
     apiOptions: { rowsPerPageOptions, sortByOptions },
-  } = useNewsApis();
+  } = useNewsApi();
 
   const handlePageChange = (_: MouseEvent<HTMLButtonElement> | null, value: number) => {
     const searchParams = new URLSearchParams(search);
@@ -72,7 +72,7 @@ const NewsFeed: FC = () => {
             />
           </>
         )}
-        {!error && !totalResults && (
+        {!error && totalResults === 0 && (
           <p style={{ margin: 'auto' }}>No results, try changing your filters</p>
         )}
         {!!error && (

@@ -16,21 +16,23 @@ import {
   SEARCH_PARAMS_MAP,
 } from './newYorkTimesApi.constants';
 
-class NewYorkTimesApi extends BaseNewsApi {
-  private readonly newYorkTimesInitialSearchParams = INITIAL_SEARCH_PARAMS;
-
-  private fetchedData: undefined | NewYorkTimesApiSuccessResponse;
-
-  private readonly newYorkTimesRowsPerPageOptions = NY_TIMES_ROWS_RER_PAGE_OPTIONS;
-
+class NewYorkTimesApi extends BaseNewsApi<NewYorkTimesApiSuccessResponse> {
   constructor() {
-    const immutableSearchParams = new URLSearchParams(IMMUTABLE_SEARCH_PARAMS);
+    const essentialSearchParams = new URLSearchParams(IMMUTABLE_SEARCH_PARAMS);
+    const initialSearchParamsString = new URLSearchParams(INITIAL_SEARCH_PARAMS).toString();
 
-    super(NY_TIMES_API_SLUG, BASE_URL, immutableSearchParams);
+    super(
+      NY_TIMES_API_SLUG,
+      BASE_URL,
+      essentialSearchParams,
+      initialSearchParamsString,
+      undefined,
+      NY_TIMES_ROWS_RER_PAGE_OPTIONS,
+    );
   }
 
   get transformedSearchParams(): string {
-    const transformedSearchParams = new URLSearchParams(this.currentSearchParamsString);
+    const transformedSearchParams = new URLSearchParams(this.searchParamsString);
     const currentPage =
       transformedSearchParams.get(SEARCH_PARAM_KEYS.page) ?? INITIAL_SEARCH_PARAMS.page;
     transformedSearchParams.set(SEARCH_PARAM_KEYS.page, `${Number(currentPage) - 1}`);
@@ -54,44 +56,37 @@ class NewYorkTimesApi extends BaseNewsApi {
   }
 
   getCommonFormatArticle(articleIndex: number): CommonArticle {
-    const urlToImage = this.articles[articleIndex].multimedia[0]?.url ?? null;
+    const article = this.articles[articleIndex];
+    const urlToImage = article.multimedia[0]?.url ?? null;
     const fullUrlToImage = urlToImage && `${BASE_IMG_URL}${urlToImage}`;
 
     return {
-      url: this.articles[articleIndex].web_url,
+      url: article.web_url,
       urlToImage: fullUrlToImage,
-      description: this.articles[articleIndex].lead_paragraph,
-      publishedAt: this.articles[articleIndex].pub_date,
-      title: this.articles[articleIndex].headline.main,
+      description: article.lead_paragraph,
+      publishedAt: article.pub_date,
+      title: article.headline.main,
     };
   }
 
   get currentPage(): number {
     if (!this.fetchedData) return 1;
 
-    return this.fetchedData.response.meta.offset / this.newYorkTimesRowsPerPageOptions[0] + 1;
+    return Math.floor(this.fetchedData.response.meta.offset / this.rowsPerPageOptions[0]) + 1;
   }
 
   get currentPageSize(): number {
-    return this.newYorkTimesRowsPerPageOptions[0];
+    return this.rowsPerPageOptions[0];
   }
 
-  get initialSearchParamsString(): string {
-    return new URLSearchParams(this.newYorkTimesInitialSearchParams).toString();
-  }
-
-  get rowsPerPageOptions(): number[] {
-    return [...this.newYorkTimesRowsPerPageOptions];
-  }
-
-  get totalResults(): number {
-    if (!this.fetchedData) return 0;
+  get totalResults(): number | null {
+    if (!this.fetchedData) return null;
 
     return this.fetchedData.response.meta.hits;
   }
 
   async fetchNews(search: string): Promise<NewYorkTimesApiSuccessResponse> {
-    this.currentSearchParamsString = search;
+    this.searchParamsString = search;
     const response = await fetch(this.constructFullUrl());
 
     if (!response.ok) {
@@ -107,9 +102,10 @@ class NewYorkTimesApi extends BaseNewsApi {
       throw new Error('Something went wrong');
     }
 
-    this.fetchedData = (await response.json()) as NewYorkTimesApiSuccessResponse;
+    const parsedResponse = (await response.json()) as NewYorkTimesApiSuccessResponse;
+    this.fetchedData = parsedResponse;
 
-    return this.fetchedData;
+    return parsedResponse;
   }
 }
 

@@ -6,7 +6,6 @@ import Fade from '@mui/material/Fade';
 import { styled } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import { useFormContext } from 'react-hook-form';
-import { FILTERS_FORM_ID } from 'components/NewsFeed/NewsFeedFilters';
 
 const FilterFabsBox = styled(Box)`
   align-items: center;
@@ -19,7 +18,9 @@ const FilterFabsBox = styled(Box)`
   z-index: 2;
 `;
 
-const FiltersFabs: FC = () => {
+type FiltersFabsProps = { filtersFormId: string };
+
+const FiltersFabs: FC<FiltersFabsProps> = ({ filtersFormId }) => {
   const {
     formState: { isDirty },
   } = useFormContext();
@@ -27,10 +28,10 @@ const FiltersFabs: FC = () => {
   return (
     <Fade in={isDirty} timeout={250}>
       <FilterFabsBox>
-        <Fab aria-label="clear filters" form={FILTERS_FORM_ID} size="small" type="reset">
+        <Fab aria-label="clear filters" form={filtersFormId} size="small" type="reset">
           <CloseIcon />
         </Fab>
-        <Fab aria-label="apply filters" color="primary" form={FILTERS_FORM_ID} type="submit">
+        <Fab aria-label="apply filters" color="primary" form={filtersFormId} type="submit">
           <CheckIcon />
         </Fab>
       </FilterFabsBox>

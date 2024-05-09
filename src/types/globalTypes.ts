@@ -10,4 +10,6 @@ export type CommonArticle = {
 
 export type SortByOptions = Readonly<{ label: string; value: string }[]>;
 
+export type RowsPerPageOptions = Readonly<number[]>;
+
 export type FCWithChildren = { children?: ReactNode };
