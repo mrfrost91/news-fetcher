@@ -71,9 +71,9 @@ class NewsApi extends BaseNewsApi<NewsApiSuccessResponse> {
     return this.fetchedData.totalResults;
   }
 
-  async fetchNews(search: string): Promise<NewsApiSuccessResponse> {
+  async fetchNews(search: string, signal: AbortSignal): Promise<NewsApiSuccessResponse> {
     this.searchParamsString = search;
-    const response = await fetch(this.constructFullUrl());
+    const response = await fetch(this.constructFullUrl(), { signal });
 
     if (!response.ok) {
       const errorData = (await response.json()) as NewsApiErrorResponse;

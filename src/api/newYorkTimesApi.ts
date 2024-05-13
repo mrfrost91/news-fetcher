@@ -85,9 +85,9 @@ class NewYorkTimesApi extends BaseNewsApi<NewYorkTimesApiSuccessResponse> {
     return this.fetchedData.response.meta.hits;
   }
 
-  async fetchNews(search: string): Promise<NewYorkTimesApiSuccessResponse> {
+  async fetchNews(search: string, signal: AbortSignal): Promise<NewYorkTimesApiSuccessResponse> {
     this.searchParamsString = search;
-    const response = await fetch(this.constructFullUrl());
+    const response = await fetch(this.constructFullUrl(), { signal });
 
     if (!response.ok) {
       const errorData = (await response.json()) as NewYorkTimesApiErrorResponse;

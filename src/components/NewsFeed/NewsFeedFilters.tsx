@@ -105,7 +105,6 @@ const NewsFeedFilters: FC<NewsFeedFiltersProps> = ({ disableFilters, sortByOptio
       <ControlledSelect
         name="source"
         label="Source"
-        disabled={disableFilters}
         options={API_OPTIONS}
         onChange={handleSourceChange}
       />

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ApiFactory, SEARCH_PARAM_KEYS } from 'api';
 import { Location, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApiSlugParam, ApiInstance } from 'api/types';
 import { ROUTE_PARAMS } from 'router';
+import { useAbortController } from './index';
 
 type LocationState = { from: { search: string } } | null;
 
@@ -36,37 +37,38 @@ const useNewsApi = () => {
     [navigate],
   );
 
-  const fetchNewsApi = useCallback(async () => {
-    setLoading(true);
+  const fetchNewsApi = useCallback(
+    async (signal: AbortSignal) => {
+      setLoading(true);
 
-    const shouldCreateNewInstance = api.current.apiSlug !== source;
-    const apiToUse = shouldCreateNewInstance ? ApiFactory.createApi(source) : api.current;
+      const shouldCreateNewInstance = api.current.apiSlug !== source;
+      const apiToUse = shouldCreateNewInstance ? ApiFactory.createApi(source) : api.current;
 
-    if (!search) {
-      handleEmptySearchParams(apiToUse, state);
+      if (!search) {
+        handleEmptySearchParams(apiToUse, state);
 
-      return;
-    }
+        return;
+      }
 
-    try {
-      await apiToUse.fetchNews(search);
-      setError(null);
-    } catch (err: unknown) {
-      setError(err as Error);
-    } finally {
-      if (shouldCreateNewInstance) api.current = apiToUse;
-      setLoading(false);
-    }
-  }, [source, search, handleEmptySearchParams, state]);
+      try {
+        await apiToUse.fetchNews(search, signal);
+        setError(null);
+      } catch (err: unknown) {
+        setError(err as Error);
+      } finally {
+        if (shouldCreateNewInstance) api.current = apiToUse;
+        setLoading(false);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [source, search, handleEmptySearchParams, state, trigger],
+  );
 
   const retry = useCallback(() => {
     setTrigger(Date.now());
   }, []);
 
-  useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    fetchNewsApi();
-  }, [fetchNewsApi, trigger]);
+  useAbortController(fetchNewsApi);
 
   return {
     apiData: {
