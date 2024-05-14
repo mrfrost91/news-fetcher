@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const useAbortController = (callback: (signal: AbortSignal) => Promise<void>): void => {
+const useAbortController = <T>(callback: (signal: AbortSignal) => Promise<T>): void => {
   useEffect(() => {
     const abortController = new AbortController();
     const { signal } = abortController;

@@ -1,4 +1,4 @@
-import { ChangeEventHandler, FC, MouseEvent } from 'react';
+import { ChangeEventHandler, FC, MouseEvent, useCallback, useEffect } from 'react';
 import TablePagination from '@mui/material/TablePagination';
 import { NewsCard } from 'components/NewsCard';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -22,7 +22,14 @@ const NewsFeed: FC = () => {
     apiData: { articles, currentPage, currentPageSize, totalResults },
     apiMethods,
     apiOptions: { rowsPerPageOptions, sortByOptions },
+    apiSearchParamsString,
   } = useNewsApi();
+
+  const handleEmptySearchParams = useCallback(() => {
+    if (!search) {
+      navigate({ search: apiSearchParamsString }, { replace: true });
+    }
+  }, [apiSearchParamsString, navigate, search]);
 
   const handlePageChange = (_: MouseEvent<HTMLButtonElement> | null, value: number) => {
     const searchParams = new URLSearchParams(search);
@@ -35,6 +42,10 @@ const NewsFeed: FC = () => {
     searchParams.set(SEARCH_PARAM_KEYS.pageSize, event.target.value);
     navigate({ search: searchParams.toString() });
   };
+
+  useEffect(() => {
+    handleEmptySearchParams();
+  }, [handleEmptySearchParams]);
 
   return (
     <NewsFeedFormProvider>

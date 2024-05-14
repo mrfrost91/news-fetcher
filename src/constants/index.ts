@@ -5,3 +5,4 @@ export {
   PREFERS_DARK_MODE_MEDIA_QUERY,
 } from './colorSettings';
 export { NONE_LABEL } from './labels';
+export { ABORT_ERROR } from './errors';
