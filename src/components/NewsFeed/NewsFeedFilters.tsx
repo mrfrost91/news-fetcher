@@ -2,7 +2,7 @@ import { ControlledSelect } from 'components/common/fields/Select';
 import { ControlledTextField } from 'components/common/fields/TextField';
 import { ChangeEventHandler, FC, KeyboardEvent, useCallback, useId, useMemo } from 'react';
 import { debounce, SelectChangeEvent } from '@mui/material';
-import { API_OPTIONS, INITIAL_PAGE, SEARCH_PARAM_KEYS } from 'api';
+import { API_OPTIONS, ApiFactory, INITIAL_PAGE, SEARCH_PARAM_KEYS } from 'api';
 import { ControlledDatePicker } from 'components/common/fields/DatePicker';
 import dayjs from 'dayjs';
 import { SubmitHandler, useFormContext, useWatch } from 'react-hook-form';
@@ -12,7 +12,7 @@ import { SortByOptions } from 'types';
 import FiltersFabs from 'components/NewsFeed/FiltersFabs';
 import { createPortal } from 'react-dom';
 import { NewsFeedFiltersStyledForm } from './NewsFeed.styled';
-import { FormFields } from './NewsFeedFormProvider';
+import { FormFields, QUERY_FORM_FIELD_KEY } from './NewsFeedFormProvider';
 
 const DEBOUNCE_TIME = 3000;
 const REACT_ROOT_DOM_NODE = document.getElementById('root')!;
@@ -26,8 +26,8 @@ const NewsFeedFilters: FC<NewsFeedFiltersProps> = ({ disableFilters, sortByOptio
   const filtersFormId = useId();
   const navigate = useNavigate();
   const { search } = useLocation();
-  const [fromDate, toDate] = useWatch<FormFields>({
-    name: [SEARCH_PARAM_KEYS.from, SEARCH_PARAM_KEYS.to],
+  const [fromDate, toDate, query] = useWatch<FormFields>({
+    name: [SEARCH_PARAM_KEYS.from, SEARCH_PARAM_KEYS.to, QUERY_FORM_FIELD_KEY],
   });
   const { handleSubmit, reset } = useFormContext<FormFields>();
   const fromDateMaxDate = toDate ? dayjs(toDate) : undefined;
@@ -35,9 +35,23 @@ const NewsFeedFilters: FC<NewsFeedFiltersProps> = ({ disableFilters, sortByOptio
     ? fromDateMaxDate.diff(dayjs(), 'day') < 0
     : false;
 
-  const handleSourceChange = (event: SelectChangeEvent<unknown>) => {
+  const handleSourceChange = <T,>(event: SelectChangeEvent<T>) => {
     const apiSlug = event.target.value as ApiSlug;
-    navigate({ pathname: `../${apiSlug}` }, { state: { from: { search } } });
+    const initialSearchParams = new URLSearchParams(
+      ApiFactory.createApi(apiSlug).searchParamsString,
+    );
+    const formData = {
+      [SEARCH_PARAM_KEYS.from]: fromDate,
+      [SEARCH_PARAM_KEYS.to]: toDate,
+      [SEARCH_PARAM_KEYS.query]: query,
+    };
+    Object.entries(formData).forEach(([key, value]) => {
+      if (key && value) {
+        initialSearchParams.set(key, value);
+      }
+    });
+
+    navigate({ pathname: `../${apiSlug}`, search: initialSearchParams.toString() });
   };
 
   const handleSearchChange: ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement> =
@@ -105,7 +119,6 @@ const NewsFeedFilters: FC<NewsFeedFiltersProps> = ({ disableFilters, sortByOptio
       <ControlledSelect
         name="source"
         label="Source"
-        disabled={disableFilters}
         options={API_OPTIONS}
         onChange={handleSourceChange}
       />

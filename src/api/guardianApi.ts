@@ -73,9 +73,9 @@ class GuardianApi extends BaseNewsApi<GuardianApiSuccessResponse> {
     return this.fetchedData.response.total;
   }
 
-  async fetchNews(search: string): Promise<GuardianApiSuccessResponse> {
+  async fetchNews(search: string, signal: AbortSignal): Promise<GuardianApiSuccessResponse> {
     this.searchParamsString = search;
-    const response = await fetch(this.constructFullUrl());
+    const response = await fetch(this.constructFullUrl(), { signal });
 
     if (!response.ok) {
       const errorData = (await response.json()) as GuardianApiErrorResponse;

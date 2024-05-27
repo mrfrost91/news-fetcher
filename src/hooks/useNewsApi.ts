@@ -1,72 +1,53 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ApiFactory, SEARCH_PARAM_KEYS } from 'api';
-import { Location, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useRef, useState } from 'react';
+import { ApiFactory } from 'api';
+import { useLocation, useParams } from 'react-router-dom';
 import { ApiSlugParam, ApiInstance } from 'api/types';
 import { ROUTE_PARAMS } from 'router';
-
-type LocationState = { from: { search: string } } | null;
+import { ABORT_ERROR } from 'constants';
+import { useAbortController } from './index';
 
 const useNewsApi = () => {
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [trigger, setTrigger] = useState<number>(() => Date.now());
   const { [ROUTE_PARAMS.source.slug]: source } = useParams<ApiSlugParam>();
-  const { search, state } = useLocation() as Location<LocationState>;
-  const navigate = useNavigate();
+  const { search } = useLocation();
   const api = useRef<ApiInstance>(ApiFactory.createApi(source));
 
-  const handleEmptySearchParams = useCallback(
-    (apiToUse: ApiInstance, locationState: LocationState) => {
-      const mergedSearchParams = new URLSearchParams(apiToUse.searchParamsString);
-
-      // Prefill search params with query, from and to dates if switching from other news sources
-      if (locationState && locationState.from.search) {
-        const fromStateSearchParams = new URLSearchParams(locationState.from.search);
-        fromStateSearchParams.delete(SEARCH_PARAM_KEYS.page);
-        fromStateSearchParams.delete(SEARCH_PARAM_KEYS.pageSize);
-        fromStateSearchParams.delete(SEARCH_PARAM_KEYS.sortBy);
-
-        fromStateSearchParams.forEach((value, key) => {
-          mergedSearchParams.set(key, value);
-        });
+  const getNews = useCallback(
+    async (signal: AbortSignal) => {
+      if (!search) {
+        return;
       }
 
-      navigate({ search: mergedSearchParams.toString() }, { replace: true });
+      const shouldCreateNewInstance = api.current.apiSlug !== source;
+      const apiToUse = shouldCreateNewInstance ? ApiFactory.createApi(source) : api.current;
+
+      try {
+        setLoading(true);
+        await apiToUse.fetchNews(search, signal);
+        setError(null);
+        setLoading(false);
+
+        if (shouldCreateNewInstance) {
+          api.current = apiToUse;
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== ABORT_ERROR) {
+          setLoading(false);
+          setError(err);
+        }
+      }
     },
-    [navigate],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [source, search, trigger],
   );
-
-  const fetchNewsApi = useCallback(async () => {
-    setLoading(true);
-
-    const shouldCreateNewInstance = api.current.apiSlug !== source;
-    const apiToUse = shouldCreateNewInstance ? ApiFactory.createApi(source) : api.current;
-
-    if (!search) {
-      handleEmptySearchParams(apiToUse, state);
-
-      return;
-    }
-
-    try {
-      await apiToUse.fetchNews(search);
-      setError(null);
-    } catch (err: unknown) {
-      setError(err as Error);
-    } finally {
-      if (shouldCreateNewInstance) api.current = apiToUse;
-      setLoading(false);
-    }
-  }, [source, search, handleEmptySearchParams, state]);
 
   const retry = useCallback(() => {
     setTrigger(Date.now());
   }, []);
 
-  useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    fetchNewsApi();
-  }, [fetchNewsApi, trigger]);
+  useAbortController(getNews);
 
   return {
     apiData: {
@@ -84,6 +65,7 @@ const useNewsApi = () => {
       rowsPerPageOptions: api.current.rowsPerPageOptions,
       sortByOptions: api.current.sortByOptions,
     },
+    apiSearchParamsString: api.current.searchParamsString,
     error,
     loading,
     retry,

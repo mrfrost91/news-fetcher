@@ -6,6 +6,8 @@ import { ApiSlug, ApiSlugParam } from 'api/types';
 import { SEARCH_PARAM_KEYS } from 'api';
 import { ROUTE_PARAMS } from 'router';
 
+export const QUERY_FORM_FIELD_KEY = 'query';
+
 export type FormFields = {
   source?: ApiSlug;
   query: string;
@@ -18,11 +20,16 @@ const NewsFeedFormProvider: FC<FCWithChildren> = ({ children }) => {
   const { [ROUTE_PARAMS.source.slug]: source } = useParams<ApiSlugParam>();
   const { search } = useLocation();
 
-  const { query, from, to, sortBy } = useMemo(() => {
+  const {
+    [QUERY_FORM_FIELD_KEY]: query,
+    from,
+    to,
+    sortBy,
+  } = useMemo(() => {
     const searchParams = new URLSearchParams(search);
 
     return {
-      query: searchParams.get(SEARCH_PARAM_KEYS.query) ?? '',
+      [QUERY_FORM_FIELD_KEY]: searchParams.get(SEARCH_PARAM_KEYS.query) ?? '',
       from: searchParams.get(SEARCH_PARAM_KEYS.from) ?? null,
       to: searchParams.get(SEARCH_PARAM_KEYS.to) ?? null,
       sortBy: searchParams.get(SEARCH_PARAM_KEYS.sortBy) ?? '',
